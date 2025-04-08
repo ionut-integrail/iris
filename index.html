@@ -302,6 +302,15 @@
                 statusElement.textContent = 'Reading JSON files...';
                 statusElement.className = 'status-message';
 
+                // Sort selectedFiles array by file name in ascending order
+                selectedFiles.sort((a, b) => {
+                // Assuming each item has a name property
+                // If your files are structured differently, adjust the property access accordingly
+                const nameA = a.name ? a.name.toLowerCase() : '';
+                const nameB = b.name ? b.name.toLowerCase() : '';
+                
+                return nameA.localeCompare(nameB);
+                });
                 // Read all files as text
                 const fileContents = await Promise.all(selectedFiles.map(file => readFileAsText(file)));
 
