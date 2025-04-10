@@ -140,6 +140,9 @@
             <input type="file" id="file-input" webkitdirectory directory multiple accept=".json">
             <button class="upload-btn" onclick="document.getElementById('file-input').click()">Select Folder</button>
 
+            <p>Add more instructions</p>
+            <textarea id="instructions-input" rows="3"></textarea>
+
             <div id="file-list">
                 <p>No files selected</p>
             </div>
@@ -325,12 +328,16 @@
 
                 statusElement.textContent = 'Sending files to server...';
 
+                const inputElement = document.getElementById("instructions-input");
+                const inputValue = inputElement.value;
+
                 // Create payload with file contents as strings
                 const payload = {
                     inputs: {
                         year2023: fileContents[0],
                         year2024: fileContents[1],
-                        year2025: fileContents[2]
+                        year2025: fileContents[2],
+                        moreInstructions: inputValue
                     }
                 };
 
