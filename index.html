@@ -140,11 +140,22 @@
             <input type="file" id="file-input" webkitdirectory directory multiple accept=".json">
             <button class="upload-btn" onclick="document.getElementById('file-input').click()">Select Folder</button>
 
+            <div id="file-list">
+                <p>No files selected</p>
+            </div>
+
+            <hr />
+
             <p>Add more instructions</p>
             <textarea id="instructions-input" rows="3"></textarea>
 
-            <div id="file-list">
-                <p>No files selected</p>
+            <hr />
+
+            <div class="pdf-upload-section">
+                <p>Upload a P60 PDF file</p>
+                <input type="file" id="pdf-input" accept=".pdf">
+                <label for="pdf-input" class="upload-btn">Select PDF</label>
+                <div id="pdf-info">No PDF selected</div>
             </div>
         </div>
 
@@ -165,6 +176,7 @@
         // Global variables to store files
         let selectedFiles = [];
         let pollingInterval = null;
+        let pdfFile = null;
 
         // Handle file selection
         document.getElementById('file-input').addEventListener('change', function (e) {
@@ -196,6 +208,24 @@
             }
 
             fileListElement.innerHTML = fileListHTML;
+        });
+
+        // Handle PDF file selection
+        document.getElementById('pdf-input').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                pdfFile = e.target.files[0];
+                const pdfInfoElement = document.getElementById('pdf-info');
+                
+                if (pdfFile.type !== 'application/pdf') {
+                    pdfInfoElement.innerHTML = '<p class="error">Selected file is not a PDF</p>';
+                    pdfFile = null;
+                } else {
+                    pdfInfoElement.innerHTML = `<p>Selected PDF: ${pdfFile.name} (${(pdfFile.size / 1024).toFixed(2)} KB)</p>`;
+                }
+            } else {
+                pdfFile = null;
+                document.getElementById('pdf-info').innerHTML = 'No PDF selected';
+            }
         });
 
         // Read file as text
@@ -242,6 +272,8 @@
                     if (statusData.execution) {
                         resultElement.innerHTML = `<pre><h2>2023 vs 2024</h2><p>${statusData.execution.outputs.diff2023and2024}</p>
                             <h2>2024 vs 2025</h2><p>${statusData.execution.outputs.diff2024and2025}</p>
+
+                            <h2>P60 Content</h2><p>${statusData.execution.outputs.p60content}</p>
                             </pre>`;
                     } else {
                         resultElement.innerHTML = `<pre>${JSON.stringify(statusData, null, 2)}</pre>`;
@@ -331,24 +363,37 @@
                 const inputElement = document.getElementById("instructions-input");
                 const inputValue = inputElement.value;
 
-                // Create payload with file contents as strings
-                const payload = {
-                    inputs: {
-                        year2023: fileContents[0],
-                        year2024: fileContents[1],
-                        year2025: fileContents[2],
-                        moreInstructions: inputValue
-                    }
+                // Create FormData instead of JSON payload
+                const formData = new FormData();
+
+                // Add PDF file if present
+                if (pdfFile) {
+                    formData.append('pdfFile', pdfFile);
+                }
+
+                // Add JSON data as a stringified object in a field
+                const jsonData = {
+                inputs: {
+                    year2023: fileContents[0],
+                    year2024: fileContents[1],
+                    year2025: fileContents[2],
+                    moreInstructions: inputValue
+                }
                 };
+                formData.append('payload', JSON.stringify(jsonData));
+
+                // Append the PDF file
+                if (pdfFile) {
+                formData.append('file', pdfFile);
+                }
 
                 // Send the JSON content to the server
-                const response = await fetch('https://cloud.integrail.ai/api/TFzQG4X2a5W6safAE/agent/ujWhaxsMp2JBtf7GD/execute', {
+                const response = await fetch('https://cloud.integrail.ai/api/TFzQG4X2a5W6safAE/agent/ujWhaxsMp2JBtf7GD/execute/multipart', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
                         'Authorization' : 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50SWQiOiJURnpRRzRYMmE1VzZzYWZBRSIsImlhdCI6MTc0NDA0NTg5Mn0.rfid2bEEKMoXGy3LU3guR50GcmollU9A9pYLzFKV1es'
                     },
-                    body: JSON.stringify(payload)
+                    body: formData
                 });
 
                 if (!response.ok) {
